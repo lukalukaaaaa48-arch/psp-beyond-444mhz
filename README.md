@@ -36,13 +36,15 @@ After experiencing instability during testing, it is preferable to remove the ba
 ### Overclock Stress Tester
 See the `tester` folder of this repository for more information.
 
-| Model | Status |
-|---|---|
-| PSP 2000 and 3000 | Tested |
-| PSP 1000 | Tested |
-| PSP Go | Tested |
+| Model              | Status            |
+|--------------------|-------------------|
+| PSP 2000 and 3000  | Tested            |
+| PSP 1000           | Tested            |
+| PSP Go             | Tested            |
 | PSP Street (E1000) | Not supported yet |
-| ePSP (Vita) | Not working |
+| ePSP (Vita)        | Not working       |
+
+*Note: On PSP Street and some very late PSP models, 6.2f may be used as PLL_BASE and 4 as PLL_DEN. Otherwise, the ratio would need to be readjusted.*
 
 ## Build
 You can build the project using `./build.sh`. This will bundle all files into `./bin/build/` ready to be copied to the root of your Memory Stick.
