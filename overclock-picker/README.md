@@ -1,6 +1,6 @@
 # PSP Overclock Picker
 
-This project is an attempt to define a ramp using the ratio 1.This project is an attempt to define a ramp using the ratio 1.0f, with the safest values. Those values are selected to reduce changes over the PLL register as much as possible, and to reduce imprecise float values at the same time. However, contrary to the experimental project using automatic ramp-up, the gap between those values is bigger.
+This project is an attempt to define a ramp using the ratio 1.0f, with the safest values. Those values are selected to reduce changes over the PLL related registers as much as possible, and to reduce imprecise float values at the same time. However, contrary to the experimental project using automatic ramp-up, the gap between those values is bigger.
 
 ## Usage
 
