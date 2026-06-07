@@ -1,47 +1,43 @@
 BINOUT = ./bin/
-PATHSRC = ./
-PATHOBJS = $(BINOUT)
-TARGET = $(BINOUT)expover
+PATHSRC = ./src/
 
-BUILD_PRX = 1
+TARGET_NAME = expover
+TARGET = $(BINOUT)$(TARGET_NAME)
 
-CPP_FILES = $(wildcard $(PATHSRC)*.cpp)
-PATHFILES = $(CPP_FILES) kcall.S
+CC = psp-gcc
+FIXUP = psp-fixup-imports
 
-OBJS = $(notdir $(patsubst %.cpp, %.o, $(patsubst %.S, %.o, $(PATHFILES))))
-OBJS := $(sort $(OBJS:%.o=$(PATHOBJS)%.o))
+PSPSDK = $(shell psp-config --pspsdk-path)
+PSPDEV = $(shell psp-config --pspdev-path)
+INCDIR = -I. -I$(PSPDEV)/psp/include -I$(PSPSDK)/include
+LIBDIR = -L. -L$(PSPDEV)/psp/lib -L$(PSPSDK)/lib
 
-CFLAGS = -Os -G0 -Wall -fno-pic -I./kernel/src \
-         -Wextra -Werror
+PSPSDK = $(shell psp-config --pspsdk-path)
+CFLAGS = -fsingle-precision-constant -Os -G0 -Wall $(INCDIR)
+LDFLAGS = $(LIBDIR) -Wl,-q,-T$(PSPSDK)/lib/linkfile.prx -nostartfiles -Wl,-zmax-page-size=128
 
-CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti  -std=c++11
-ASFLAGS = $(CFLAGS)
+LIBS = -lpspdebug -lpspge -lpspdisplay -lpspctrl -lpsppower -lpsprtc -lpspsystemctrl_kernel
 
-LIBS = -lpsppower -lpspgu -lpspge
+release: all
 
-EXTRA_CLEAN = kcall.S
-PSP_EBOOT_SFO = $(BINOUT)PARAM.SFO
-EXTRA_TARGETS = $(BINOUT)EBOOT.PBP
-PSP_EBOOT = $(EXTRA_TARGETS)
-PSP_EBOOT_TITLE = Experimental Generic Overclock Tester
-PSPSDK=$(shell psp-config --pspsdk-path)
-include $(PSPSDK)/lib/build.mak
+C_FILES = $(shell ls $(PATHSRC)*.c)
+OBJS = $(notdir $(patsubst %.c, %.o, $(C_FILES)))
+OBJS := $(sort $(OBJS:%.o=$(BINOUT)%.o))
 
-.PHONY: kernel
-$(OBJS): kernel
+FINAL_TARGET = $(TARGET).prx
 
-kernel:
-	$(MAKE) -C ./kernel
+all: $(FINAL_TARGET)
 
-kcall.S: kernel
-	@
-  
-$(PATHOBJS)kcall.o: kcall.S
-	$(CXX) -o $@ -c $< $(ASFLAGS)
+$(TARGET).elf: $(OBJS)
+	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@ && $(FIXUP) $@
 
-$(PATHOBJS)%.o: $(PATHSRC)%.cpp
-	$(CXX) -o $@ -c $< $(CXXFLAGS)
+%.prx: %.elf
+	psp-prxgen $< $@
+
+$(BINOUT)%.o: $(PATHSRC)%.c
+	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:
-	-rm -f $(TARGET).elf $(TARGET).prx $(OBJS) $(EXTRA_TARGETS) $(PSP_EBOOT_SFO) kcall.S
-	$(MAKE) -C ./kernel clean
+	-rm -f $(FINAL_TARGET) $(TARGET).elf $(OBJS)
+
+rebuild: clean all
