@@ -7,7 +7,7 @@
 #include <pspgu.h>
 #include "kcall.h"
 #include "main.h"
-#include <math.h>
+//#include <math.h>
 
 #define u32 unsigned int
 
@@ -24,7 +24,7 @@ PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_VFPU | PSP_THREAD_ATTR_USER);
 // PLL_FREQ = PLL_BASE_FREQ * (PLL_NUM / PLL_DEN) * PLL_RATIO, with PLL_BASE_FREQ = 37 and PLL_RATIO = 1.0f
 
 #define PLL_DEN                           20 /*17*/ /*18*/ 
-#define PLL_MUL_MSB                       0x0124
+//#define PLL_MUL_MSB                       0x0124
 #define PLL_BASE_FREQ                     37
 #define PLL_RATIO_INDEX                   0x05
 #define PLL_RATIO                         1.0f
@@ -74,26 +74,25 @@ int _dump() {
   return 0;
 }
 
-#define updatePLLControl()                          \
-{                                                   \
-  if (!(hw(0xbc100068) & PLL_RATIO_INDEX)) {        \
-    hw(0xbc100068) = 0x80 | PLL_RATIO_INDEX;        \
-    /*hw(0xbc100068) &= 0xfffffff0;*/               \
-    /*hw(0xbc100068) |= (0x80 | PLL_RATIO_INDEX);*/ \
-    sync();                                         \
-    do {                                            \
-      delayPipeline();                              \
-    } while (hw(0xbc100068) & 0x80);                \
-    sync();                                         \
-  }                                                 \
+#define updatePLLControl(index)                                                \
+{                                                                              \
+  if (!(hw(0xbc100068) & index)) {                                             \
+    hw(0xbc100068) = (hw(0xbc100068) & 0xffffff00) | (0x80 | PLL_RATIO_INDEX); \
+    sync();                                                                    \
+    do {                                                                       \
+      delayPipeline();                                                         \
+    } while (hw(0xbc100068) & 0x80);                                           \
+    sync();                                                                    \
+  }                                                                            \
 }
 
-#define updatePLLMultiplier(num, msb)               \
-{                                                   \
-  const u32 lsb = (num) << 8 | PLL_DEN;             \
-  const u32 multiplier = (msb << 16) | lsb;         \
-  hw(0xbc1000fc) = multiplier;                      \
-  sync();                                           \
+#define updatePLLMultiplier(num/*, msb*/)                                      \
+{                                                                              \
+  const u32 lsb = (num) << 8 | PLL_DEN;                                        \
+  /*const u32 multiplier = (msb << 16) | lsb;*/                                \
+  /*hw(0xbc1000fc) = multiplier;*/                                             \
+  hw(0xbc1000fc) = (hw(0xbc1000fc) & 0xffff0000) | lsb;                        \
+  sync();                                                                      \
 }
 
 inline void adjustPLLMultiplier() {
@@ -101,8 +100,7 @@ inline void adjustPLLMultiplier() {
   const u32 defaultNum = (u32)(((float)(DEFAULT_FREQUENCY * PLL_DEN)) / ((float)(PLL_BASE_FREQ * PLL_RATIO)));
   hw(0xbc1000fc) = (hw(0xbc1000fc) & 0xffff0000) | (defaultNum << 8) | PLL_DEN;
   sync();
-  
-  hw(0xbc1000fc) = (PLL_MUL_MSB << 16) | (hw(0xbc1000fc) & 0xffff);
+  //hw(0xbc1000fc) = (PLL_MUL_MSB << 16) | (hw(0xbc1000fc) & 0xffff);
   settle();
 }
 
@@ -113,26 +111,14 @@ inline void adjustPLLRatio() {
 
   if (index != PLL_RATIO_INDEX) {
     
-    //const u32 defaultNum = (u32)(((float)(DEFAULT_FREQUENCY * PLL_DEN)) / ((float)(PLL_BASE_FREQ * PLL_RATIO)));
-    //hw(0xbc1000fc) = (PLL_MUL_MSB << 16) | (defaultNum << 8) | PLL_DEN;
-    //sync();
-    
     const int step = (index > PLL_RATIO_INDEX) ? -1 : 1;
     while (((step < 0) == (index > PLL_RATIO_INDEX)) || index == PLL_RATIO_INDEX) {
-    //while ((step < 0 && index >= PLL_RATIO_INDEX) || (step > 0 && index <= PLL_RATIO_INDEX)) {
-        
-      hw(0xbc100068) = 0x80 | index;
-      sync();
-      
-      do {
-        delayPipeline();
-      } while ((hw(0xbc100068) & 0x80));
+
+      updatePLLControl(index);
       settle();
-      
       index += step;
     }
   }
-  
 }
 
 inline void adjustDomainRatios() {
@@ -167,8 +153,6 @@ inline void adjustDomainRatios() {
     hw(0xBC200004) = (busNum << 16) | busDen;
     settle();
   }
-  
-  // hw(0xBC200008) = 511 << 16 | 511;
 }
 
 void adjustInitialFrequencies() {
@@ -187,6 +171,7 @@ void adjustInitialFrequencies() {
   sceKernelResumeDispatchThread(state);
 }
 
+/*
 inline int isFrequencyNearInteger(const float num) {
   
   const float tolerance = 0.00001f;
@@ -199,6 +184,7 @@ inline int isFrequencyNearInteger(const float num) {
   }
   return 0;
 }
+*/
 
 int _setOverclock() {
   
@@ -226,14 +212,13 @@ int _setOverclock() {
     u32 _num = (u32)(((float)(defaultFreq * PLL_DEN)) / ((float)(PLL_BASE_FREQ * PLL_RATIO)));
     const u32 num = (u32)(((float)(theoreticalFreq * PLL_DEN)) / ((float)(PLL_BASE_FREQ * PLL_RATIO)));
     
-    updatePLLControl();
+    updatePLLControl(PLL_RATIO_INDEX);
     
-    //const u32 msb = PLL_MUL_MSB | (1 << (PLL_CUSTOM_FLAG - 16));
     while (_num <= num) {
       
-      if (isFrequencyNearInteger(_num)) {
-        updatePLLMultiplier(_num, PLL_MUL_MSB);
-      }
+      //if (isFrequencyNearInteger(_num)) {
+        updatePLLMultiplier(_num/*, PLL_MUL_MSB*/);
+      //}
       _num++;
     }
     settle();
@@ -270,26 +255,25 @@ void _cancelOverclock() {
   resumeCpuIntr(intr);
   sceKernelResumeDispatchThread(state);
 
+  // todo: new a review for Street+
   const float n = (float)((pllMul & 0xff00) >> 8);
   const float d = (float)((pllMul & 0x00ff));
   const float m = (d > 0.0f) ? (n / d) : 9.0f;
   const int overclocked = ((pllCtl & PLL_RATIO_INDEX) && (m > 9.0f)) ? 1 : 0;
   sceKernelDelayThread(1000);
   
-  //const u32 pllMul = hw(0xbc1000fc); sync();
-  //const int overclocked = pllMul & (1 << PLL_CUSTOM_FLAG);
-    
   if (overclocked) {
+    
     state = sceKernelSuspendDispatchThread();
     suspendCpuIntr(intr);
     
-    updatePLLControl();
+    updatePLLControl(PLL_RATIO_INDEX);
 
     while (_num >= num) {
       
-      if (isFrequencyNearInteger(_num)) {
-        updatePLLMultiplier(_num, PLL_MUL_MSB);
-      }
+      //if (isFrequencyNearInteger(_num)) {
+        updatePLLMultiplier(_num/*, PLL_MUL_MSB*/);
+      //}
       _num--;
     }
     settle();
@@ -329,6 +313,7 @@ struct Vertex {
 static unsigned int __attribute__((aligned(16))) list[1024] = {0};
 
 void guInit() {
+  
   sceGuInit();
   sceGuStart(GU_DIRECT, list);
   sceGuDrawBuffer(GU_PSM_8888, (void*)DRAW_BUF_0, BUF_WIDTH);
@@ -402,7 +387,7 @@ int main() {
   do {
     sceRtcGetCurrentTick(&prev);
     
-    const u32 offset = (buffer == DRAW_BUF_0) ? DRAW_BUF_0 : DRAW_BUF_1;    
+    const u32 offset = (buffer == DRAW_BUF_0) ? DRAW_BUF_0 : DRAW_BUF_1;
     sceCtrlPeekBufferPositive(&ctl, 1);
     
     if (!switchOverclock && (ctl.Buttons & PSP_CTRL_TRIANGLE)) {

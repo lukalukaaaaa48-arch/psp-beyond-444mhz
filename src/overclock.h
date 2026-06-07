@@ -2,12 +2,13 @@
 #define H_OVERCLOCK_PLUGIN_MAIN
 
 #include "main.h"
+//#include <math.h>
 
 // m-c/d 2026, for more information on this project see:
 // https://github.com/mcidclan/psp-undocumented-sorcery/tree/main/experimental-overclock
 
 #define PLL_DEN                               20 /*17*/ /*18*/
-#define PLL_MUL_MSB                           0x0124
+//#define PLL_MUL_MSB                           0x0124
 #define PLL_RATIO_INDEX                       5
 #define PLL_BASE_FREQ                         37
 //#define PLL_CUSTOM_FLAG                     27
@@ -17,26 +18,25 @@
 static const int MAX_THEORETICAL_FREQUENCY  = ((int)((255.0f / (float)PLL_DEN) * (float)PLL_BASE_FREQ)); //555; //471; //524;
 static int THEORETICAL_FREQUENCY            = MAX_THEORETICAL_FREQUENCY;
 
-#define updatePLLMultiplier(num, msb)               \
-{                                                   \
-  const u32 lsb = (num) << 8 | PLL_DEN;             \
-  const u32 multiplier = (msb << 16) | lsb;         \
-  hw(0xbc1000fc) = multiplier;                      \
-  sync();                                           \
+#define updatePLLMultiplier(num/*, msb*/)                                      \
+{                                                                              \
+  const u32 lsb = (num) << 8 | PLL_DEN;                                        \
+  /*const u32 multiplier = (msb << 16) | lsb;*/                                \
+  /*hw(0xbc1000fc) = multiplier;*/                                             \
+  hw(0xbc1000fc) = (hw(0xbc1000fc) & 0xffff0000) | lsb;                        \
+  sync();                                                                      \
 }
 
-#define updatePLLControl()                          \
-{                                                   \
-  if (!(hw(0xbc100068) & PLL_RATIO_INDEX)) {        \
-    hw(0xbc100068) = 0x80 | PLL_RATIO_INDEX;        \
-    /*hw(0xbc100068) &= 0xfffffff0;*/               \
-    /*hw(0xbc100068) |= (0x80 | PLL_RATIO_INDEX);*/ \
-    sync();                                         \
-    do {                                            \
-      delayPipeline();                              \
-    } while (hw(0xbc100068) & 0x80);                \
-    sync();                                         \
-  }                                                 \
+#define updatePLLControl(index)                                                \
+{                                                                              \
+  if (!(hw(0xbc100068) & index)) {                                             \
+    hw(0xbc100068) = (hw(0xbc100068) & 0xffffff00) | (0x80 | PLL_RATIO_INDEX); \
+    sync();                                                                    \
+    do {                                                                       \
+      delayPipeline();                                                         \
+    } while (hw(0xbc100068) & 0x80);                                           \
+    sync();                                                                    \
+  }                                                                            \
 }
 
 static inline void adjustPLLMultiplier() {
@@ -45,7 +45,7 @@ static inline void adjustPLLMultiplier() {
   hw(0xbc1000fc) = (hw(0xbc1000fc) & 0xffff0000) | (defaultNum << 8) | PLL_DEN;
   sync();
   
-  hw(0xbc1000fc) = (PLL_MUL_MSB << 16) | (hw(0xbc1000fc) & 0xffff);
+  //hw(0xbc1000fc) = (PLL_MUL_MSB << 16) | (hw(0xbc1000fc) & 0xffff);
   settle();
 }
 
@@ -58,20 +58,14 @@ static inline void adjustPLLRatio() {
     
     const int step = (index > PLL_RATIO_INDEX) ? -1 : 1;
     while (((step < 0) == (index > PLL_RATIO_INDEX)) || index == PLL_RATIO_INDEX) {
-        
-      hw(0xbc100068) = 0x80 | index;
-      sync();
-      
-      do {
-        delayPipeline();
-      } while ((hw(0xbc100068) & 0x80));
+
+      updatePLLControl(index);
       settle();
-      
       index += step;
     }
   }
-  
 }
+
 
 static inline void adjustDomainRatios() {
   
@@ -123,7 +117,20 @@ void adjustInitialFrequencies() {
   sceKernelResumeDispatchThread(state);
 }
 
-
+/*
+static inline int isFrequencyNearInteger(const float num) {
+  
+  const float tolerance = 0.00001f;
+  const float baseFreq = (float)PLL_BASE_FREQ;
+  const float den = (float)PLL_DEN;
+  const float freq = baseFreq * (num / den);
+  
+  if (freq - roundf(freq) > tolerance) {
+    return 1;
+  }
+  return 0;
+}
+*/
 
 static inline void setOverclock() {
   
@@ -139,17 +146,17 @@ static inline void setOverclock() {
     int intr, state;
     state = sceKernelSuspendDispatchThread();
     suspendCpuIntr(intr);
-    
-    // clearTags();
-    
+        
     u32 _num = (u32)(((float)(defaultFreq * PLL_DEN)) / ((float)PLL_BASE_FREQ));
     const u32 num = (u32)(((float)(theoreticalFreq * PLL_DEN)) / ((float)PLL_BASE_FREQ));
     
-    updatePLLControl();
+    updatePLLControl(PLL_RATIO_INDEX);
     
-    //const u32 msb = PLL_MUL_MSB | (1 << (PLL_CUSTOM_FLAG - 16));
     while (_num <= num) {
-      updatePLLMultiplier(_num, PLL_MUL_MSB);
+      
+      //if (isFrequencyNearInteger(_num)) {
+        updatePLLMultiplier(_num/*, PLL_MUL_MSB*/);
+      //}
       _num++;
     }
     settle();
@@ -159,8 +166,7 @@ static inline void setOverclock() {
     
     resumeCpuIntr(intr);
     sceKernelResumeDispatchThread(state);
-  
-    // scePowerTick(PSP_POWER_TICK_ALL);
+    
     sceKernelDelayThread(100);
   }
 }
@@ -181,23 +187,25 @@ static inline int cancelOverclock() {
   resumeCpuIntr(intr);
   sceKernelResumeDispatchThread(state);
   
+  // todo: new a review for Street+
   const float n = (float)((pllMul & 0xff00) >> 8);
   const float d = (float)((pllMul & 0x00ff));
   const float m = (d > 0.0f) ? (n / d) : 9.0f;
   const int overclocked = ((pllCtl & PLL_RATIO_INDEX) && (m > 9.0f)) ? 1 : 0;
   sceKernelDelayThread(1000);
 
-  //const u32 pllMul = hw(0xbc1000fc); sync();
-  //const int overclocked = pllMul & (1 << PLL_CUSTOM_FLAG);
-  
   if (overclocked) {
+    
     state = sceKernelSuspendDispatchThread();
     suspendCpuIntr(intr);
     
-    updatePLLControl();
+    updatePLLControl(PLL_RATIO_INDEX);
 
     while (_num >= num) {
-      updatePLLMultiplier(_num, PLL_MUL_MSB);
+      
+      //if (isFrequencyNearInteger(_num)) {
+        updatePLLMultiplier(_num/*, PLL_MUL_MSB*/);
+      //}
       _num--;
     }
     settle();
@@ -210,6 +218,7 @@ static inline int cancelOverclock() {
 }
 
 static inline int readFreqConfig() {
+  
   char buf[16] = {0};
   SceUID fd = sceIoOpen("ms0:/overconfig.txt", PSP_O_RDONLY, 0777);
   if (fd >= 0) {
@@ -226,6 +235,7 @@ static inline int readFreqConfig() {
 }
 
 static inline void initOverclock(int* const delay) {
+  
   sceKernelIcacheInvalidateAll();
   unlockMemory();
   

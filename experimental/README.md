@@ -1,4 +1,4 @@
-# Experimental PSP Generic Overclock Stress Tester
+# Experimental PSP Generic/Universal Overclock Stress Tester
 
 WIP
 
