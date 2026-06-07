@@ -1,11 +1,11 @@
-# Experimental PSP Overclock Plugin
+# Experimental PSP Overclock
 
 ## Description
 This is an experimental project for technical purposes only, intended for developers and advanced users. Stability is not guaranteed, use with caution.  
 
 The current target frequency is set to 471 MHz (defined by `THEORETICAL_FREQUENCY`), but this is not guaranteed to be achieved on all PSPs. Some will comfortably exceed 407 MHz, others will be around that mark, and some may fall below it.
 
-## Usage
+## Plugin Usage
 
 ### Prerequisites
 Before using this plugin, make sure to:
@@ -58,11 +58,17 @@ That said, here are some observations and  assumptions about the PSP Street and 
 The last three points are assumptions and still need verification.
 
 ## Build
-You can build the project using `./build.sh`. This will bundle all files into `./bin/build/` ready to be copied to the root of your Memory Stick.
 
-To track which version you've built, use `./build.sh <version>` (e.g., `./build.sh v2.4`). This generates a `note.txt` file from the template with the specified version number.
+### Plugin and Stress Tester
+You can build the project using `./experimental/build.sh`. This will bundle all files into `./experimental/bin/build/` ready to be copied to the root of your Memory Stick.
+
+To track which version you've built, use `./experimental/build.sh <version>` (e.g., `./experimental/build.sh v2.4`). This generates a `note.txt` file from the template with the specified version number.
 
 The README.md files will automatically be included in their respective directories so you have the instructions available locally.
+
+### Overclock Picker
+
+Todo
 
 ## Contribution Guidelines
 
