@@ -1,14 +1,12 @@
 # PSP Overclock Picker
 
-WIP
+This project is an attempt to define a ramp using the ratio 1.This project is an attempt to define a ramp using the ratio 1.0f, with the safest values. Those values are selected to reduce changes over the PLL register as much as possible, and to reduce imprecise float values at the same time. However, contrary to the experimental project using automatic ramp-up, the gap between those values is bigger.
 
 ## Usage
 
 Before starting, make sure that no overclock plugin is enabled. It is best to start from a fresh reboot. Ideally, you should perform a reset by holding SELECT + START + △ (Triangle) + □ (Square) while powering on the device before and after using this program.
 
-Copy the EBOOT and kcall.prx to the same folder in your `GAME` folder, then just run the program as any other homebrew. Press `Triangle` to start the process, wait for the status `RUNNING`, and let the frequency increase until the device freezes and shuts down. You can cancel the process by pressing `Triangle` at any time, then wait for the status `STOPPED`.
-
-As the program could crash at any time after reaching a certain limit, you'll need to check the value in `ms:/overconfig.txt` to make sure it matches your observations during stress testing.
+Copy the EBOOT and kcall.prx to the same folder in your `GAME` folder, then just run the program as any other homebrew. Press `Triangle` to start the increase the value, Press `Cross` to decrease the value.
 
 Note: Keep in mind that it still needs improvement to get a more precise value.
 

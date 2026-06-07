@@ -3,72 +3,12 @@
 ## Description
 This is an experimental project for technical purposes only, intended for developers and advanced users. Stability is not guaranteed, use with caution.  
 
-The current target frequency is set to 471 MHz (defined by `THEORETICAL_FREQUENCY`), but this is not guaranteed to be achieved on all PSPs. Some will comfortably exceed 407 MHz, others will be around that mark, and some may fall below it.
+## Experimental Overclock With Automatic Ramp-Up
+This project includes a plugin and a stress tester.  
+See the [Experimental Overclock](experimental)
 
-## Plugin Usage
-
-### Prerequisites
-Before using this plugin, make sure to:
-- Install the pspsdk and related toolchain
-- Disable all previous versions or similar plugins
-- Remove any existing overclocking >333MHz code from your application
-
-### Controls
-Press **L_TRIGGER + R_TRIGGER + NOTE** (or alternatively **L_TRIGGER + R_TRIGGER + CIRCLE**) to toggle between 333MHz and the `THEORETICAL_FREQUENCY` target, or the frequency set in the ms0:/overconfig.txt file.
-
-### Visual Feedback
-- **333MHz (standard)**: White square on green background
-- **Custom > 333MHz (overclocked)**: Red square on white background
-The plugin auto-starts at 333MHz. In most cases, you should see the square a few seconds after the game/homebrew boots.
-
-### ms0:/overconfig.txt
-If the file doesn't exist, the plugin will target the `THEORETICAL_FREQUENCY` for the overclock frequency. So you must set a value between 333 and the `THEORETICAL_FREQUENCY` in that file.  
-
-You can create that file manually, but it is **HIGHLY** recommended to use the overclock stress tester provided with this project, and let it create the file at the root of the memory stick for you with the maximum frequency supported by your PSP.  
-
-In case you want to write the value by hand, start from 333 and increase in steps of multiples of 5.
-
-## Compatibility and Testing
-
-### Testing Methodology
-After experiencing instability during testing, it is preferable to remove the battery and any other power source in order to start fresh with a clean test. Additionally, when restarting, you may perform a reset using SELECT + START + △ (Triangle) + □ (Square).
-
-### Overclock Stress Tester
-See the `tester` folder of this repository for more information.
-
-| Model              | Status            |
-|--------------------|-------------------|
-| PSP 2000 and 3000  | Tested            |
-| PSP 1000           | Tested            |
-| PSP Go             | Tested            |
-| PSP Street (E1000) | Not supported yet |
-| ePSP (Vita)        | Not working       |
-
-#### Special Note Related to PSP Street and Latest Models
-
-PSP Street uses `0x01221100` as the default value for the PLL register and 5 as the ratio table index. On PSP Street and those very late PSP models, `6.2f` may be used as `PLL_BASE` and `4` as `PLL_DEN`, otherwise the ratio would need to be readjusted. Keep in mind that changing `PLL_BASE` within this context will break the logic of the code, as it was written assuming the PLL base frequency to be `37` on other models. The only way to achieve valid logic across every model is to understand what `0x01221100` actually means. Without that understanding, you would just be arbitrarily tweaking values with no real insight.
-
-That said, here are some observations and  assumptions about the PSP Street and related models:
-
-- The ratio table does not appear to have changed.
-- The `0x00` value in the last 8 bits could be related to a disabled state of the multiplier.
-- Sony may have introduced additional hardware registers to control the multiplier on the Street and related models.
-- The first 16 bits may be related to a clock selector.
-
-The last three points are assumptions and still need verification.
-
-## Build
-
-### Plugin and Stress Tester
-You can build the project using `./experimental/build.sh`. This will bundle all files into `./experimental/bin/build/` ready to be copied to the root of your Memory Stick.
-
-To track which version you've built, use `./experimental/build.sh <version>` (e.g., `./experimental/build.sh v2.4`). This generates a `note.txt` file from the template with the specified version number.
-
-The README.md files will automatically be included in their respective directories so you have the instructions available locally.
-
-### Overclock Picker
-
-Todo
+## Overclock Picker
+See the [Overclock Picker](overclock-picker).
 
 ## Contribution Guidelines
 
