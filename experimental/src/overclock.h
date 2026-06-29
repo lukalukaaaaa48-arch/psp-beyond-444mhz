@@ -7,7 +7,7 @@
 // m-c/d 2026, for more information on this project see:
 // https://github.com/mcidclan/psp-undocumented-sorcery/tree/main/experimental-overclock
 
-#define PLL_DEN                               20 /*17*/ /*18*/
+#define PLL_DEN                               18 /*17*/ /*18*/
 //#define PLL_MUL_MSB                           0x0124
 #define PLL_RATIO_INDEX                       5
 #define PLL_BASE_FREQ                         37
